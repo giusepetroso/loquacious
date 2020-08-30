@@ -1,4 +1,5 @@
 library loquacious;
+import 'package:recase/recase.dart';
 
 class Model {
   /* 
@@ -6,7 +7,14 @@ class Model {
    */
   String table;
 
-  Model({this.table}) {
-    this.table = this.runtimeType.toString();
+  Model() {
+    ReCase rc = new ReCase(this.runtimeType.toString());
+    this.table = rc.snakeCase;
   }
+
+  Builder() {
+
+  }
+
+  
 }
