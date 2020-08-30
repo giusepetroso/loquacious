@@ -1,20 +1,33 @@
 library loquacious;
+
 import 'package:recase/recase.dart';
 
-class Model {
+class LqModel {
   /* 
     table propery for defining the sqlite table to query
    */
-  String table;
+  static String table;
 
-  Model() {
-    ReCase rc = new ReCase(this.runtimeType.toString());
-    this.table = rc.snakeCase;
+  /* 
+    constructor
+   */
+  LqModel() {
+    ReCase rc = ReCase(this.runtimeType.toString());
+    LqModel.table = rc.snakeCase;
   }
 
-  Builder() {
+  /* static methods */
+  static List<Map<String, dynamic>> all() {
+    return LqQueryBuilder(LqModel.table).all();
+  }
+}
+
+class LqQueryBuilder {
+  String _query;
+  String _table;
+  LqQueryBuilder(this._table);
+
+  List<Map<String, dynamic>> all() {
 
   }
-
-  
 }
