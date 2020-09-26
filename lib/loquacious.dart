@@ -1,6 +1,12 @@
 library loquacious;
 
-import 'package:recase/recase.dart';
+enum DBType {
+  NULL,
+  INTEGER,
+  REAL,
+  TEXT,
+  BLOB,
+}
 
 class LqModel {
   /* 
@@ -9,11 +15,15 @@ class LqModel {
   String table;
 
   /* 
+    schema propery for defining the sqlite table schema
+   */
+  Map<String, DBType> schema;
+
+  /* 
     constructor
    */
   LqModel() {
-    ReCase rc = ReCase(this.runtimeType.toString());
-    this.table = rc.snakeCase;
+
   }
 
   /* 
@@ -38,4 +48,5 @@ class LqQueryBuilder {
 }
 
 class LqQueryWhereClause {}
+
 class LqQueryOrderClause {}
