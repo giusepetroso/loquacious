@@ -1,5 +1,8 @@
 library loquacious;
 
+import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
+
 enum DBType {
   NULL,
   INTEGER,
@@ -15,38 +18,39 @@ class LqModel {
   String table;
 
   /* 
-    schema propery for defining the sqlite table schema
-   */
-  Map<String, DBType> schema;
-
-  /* 
     constructor
    */
-  LqModel() {
-
-  }
+  LqModel() {}
 
   /* 
     all
     retrieve all the collection
    */
   List<Map<String, dynamic>> all() {
-    return LqQueryBuilder(this.table).all();
+
   }
 }
 
-class LqQueryBuilder {
-  String _query;
+// QUERY BUILDER
+class LoquaciousQueryBuilder {
+  final databaseName;
+  LoquaciousQueryBuilder(this.databaseName);
 
-  String _table;
-  LqQueryBuilder(this._table);
-
-  List<LqQueryWhereClause> whereList;
-  List<LqQueryOrderClause> orderList;
-
-  List<Map<String, dynamic>> all() {}
+  Future<void> createTable(String tableName) async {
+    var db = await openDatabase("${this.databaseName}.db");
+  }
 }
 
-class LqQueryWhereClause {}
+// MIGRATION MANAGEMENT
+class LoquaciousMigration {
+  final String databaseName;
+  final String tableName;
+  LoquaciousMigration({
+    @required this.databaseName,
+    @required this.tableName,
+  });
 
-class LqQueryOrderClause {}
+  Future<void> up() async {
+    
+  }
+}
