@@ -79,6 +79,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  get_it:
+    dependency: transitive
+    description:
+      name: get_it
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "4.0.4"
   intl:
     dependency: transitive
     description:
@@ -217,6 +224,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.2+1"
+  sqflite_migration_service:
+    dependency: "direct main"
+    description:
+      name: sqflite_migration_service
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.1"
   stack_trace:
     dependency: transitive
     description:
@@ -289,4 +303,4 @@ packages:
     version: "0.1.0"
 sdks:
   dart: ">=2.9.0-14.0.dev <3.0.0"
-  flutter: ">=1.12.13+hotfix.5 <2.0.0"
+  flutter: ">=1.17.0 <2.0.0"

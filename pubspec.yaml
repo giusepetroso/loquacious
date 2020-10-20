@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   sqflite: ^1.3.1+1
+  sqflite_migration_service:
   shared_preferences: ^0.5.12 
 
 dev_dependencies:
