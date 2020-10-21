@@ -1,6 +1,5 @@
 library loquacious;
 
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -98,25 +97,33 @@ class LQB {
   // database instance
   Database _db;
 
+  // query
+  String _query;
+  List<dynamic> _queryArgs = [];
+
+  // aliases
+  Map<String, String> _aliases = {};
+
   // query props
   String _table;
   bool _distinct;
   List<Map<String, String>> _join;
   List<String> _columns;
   List<Map<String, String>> _where;
-  List<dynamic> _whereArgs;
-  String _groupBy;
-  String _having;
-  String _orderBy;
+  List<String> _groupBy;
+  List<Map<String, String>> _having;
+  List<Map<String, String>> _orderBy;
   int _limit;
   int _offset;
+
+  LQB _union;
 
   /* 
     TABLE CONSTRUCTOR (entrypoint for all queries)
   */
   factory LQB.table(String tableName) {
     final lqb = LQB._internal();
-    lqb._table = tableName;
+    lqb._table = lqb._parseTableAndAlias(tableName);
     return lqb;
   }
 
@@ -156,6 +163,52 @@ class LQB {
   }
 
   // ##################
+  // ALIAS CHECKING
+  // ##################
+
+  // PARSE TABLE AND ALIAS
+  // this method parses the string of a table and eventually stores the alias then returns the table name
+  String _parseTableAndAlias(String tableName) {
+    final splitted = tableName.toLowerCase().split('as');
+    final t = splitted[0].trim();
+    String a;
+    if (splitted.length > 1) {
+      a = splitted[1].trim();
+      this._aliases[t] = a;
+    }
+    return t;
+  }
+
+  String _checkTableAndAliasInColumn(String column, String tableName) {
+    column.trim();
+    if (column.contains('.')) {
+      final splitted = column.split('.');
+      if (splitted.length > 2) return null;
+      if (this._aliases.containsKey(tableName) && splitted[0] == tableName) column = "${this._aliases[tableName]}.${splitted[1]}";
+    } else {
+      if (this._aliases.containsKey(tableName)) {
+        column = "${this._aliases[tableName]}.$column";
+      } else {
+        column = "$tableName.$column";
+      }
+    }
+    return column;
+  }
+
+  // ##################
+  // SCHEMA METHODS
+  // ##################
+  Future<List<String>> tableColumns(String tableName) async {
+    try {
+      final schema = await this._db.rawQuery("PRAGMA table_info('$tableName');");
+      return schema.map((e) => e['name']);
+    } catch (e) {
+      // TODO error handling
+    }
+    return [];
+  }
+
+  // ##################
   // RAW METHODS
   // ##################
   // TODO
@@ -166,7 +219,12 @@ class LQB {
 
   // SELECT
   LQB select(List<String> columns) {
-    this._columns = columns;
+    this._columns = columns
+        .map((e) {
+          return this._checkTableAndAliasInColumn(e, this._table);
+        })
+        .where((e) => e != null && e.split(' ').length == 1)
+        .toList();
     return this;
   }
 
@@ -177,16 +235,13 @@ class LQB {
     String whereOperator, {
     OP operator,
   }) {
-    final op = LQB.opToString(operator);
-
     if (this._where == null) this._where = [];
     this._where.add({
-      'logical_operator': this._where.length == 0 ? '' : "$whereOperator",
-      'where_string': "$column $op ?",
+      'column': this._checkTableAndAliasInColumn(column, this._table),
+      'value': value,
+      'operator': LQB.opToString(operator),
+      'where_operator': this._where.length == 0 ? '' : "$whereOperator ",
     });
-
-    if (this._whereArgs == null) this._whereArgs = [];
-    this._whereArgs.add(value);
     return this;
   }
 
@@ -224,18 +279,9 @@ class LQB {
   // COMMON JOIN
   LQB _commonJoin(String joinType, String table, String joinColumn, OP operator, String tableColumn) {
     if (this._join == null) this._join = [];
-
-    final splittedTable = table.toLowerCase().split('as');
-    final tableString = splittedTable[0];
-    String aliasString;
-    if (splittedTable.length > 1) {
-      aliasString = splittedTable[1];
-    }
-
     this._join.add({
       'type': joinType,
-      'table': tableString,
-      'alias': aliasString,
+      'table': this._parseTableAndAlias(table),
       'join_column': joinColumn,
       'operator': LQB.opToString(operator),
       'table_column': tableColumn,
@@ -267,43 +313,178 @@ class LQB {
   //   return this;
   // }
 
+  // TODO: nested joins
+
+  // UNION
+  LQB union(LQB queryBuilder) {
+    if (queryBuilder == this) throw 'Cannot pass calling instance as union argument';
+    this._union = queryBuilder;
+    return this;
+  }
+
+  // ORDER BY
+  LQB _commonOrderBy(String column, String direction) {
+    if (this._orderBy == null) this._orderBy = [];
+    this._orderBy.add({
+      'column': column,
+      'direction': direction,
+    });
+    return this;
+  }
+
+  LQB orderBy(String column) {
+    return this._commonOrderBy(column, 'ASC');
+  }
+
+  // ORDER BY DESC
+  LQB orderByDesc(String column) {
+    return this._commonOrderBy(column, 'DESC');
+  }
+
+  // GROUP BY
+  LQB groupBy(String column) {
+    if (this._groupBy == null) this._groupBy = [];
+    this._groupBy.add(column);
+    return this;
+  }
+
+  // HAVING
+
   // GET
   Future<List<Map<String, dynamic>>> get() async {
-    if (this._join == null) {
-      return this._db.query(
-            this._table,
-            distinct: this._distinct,
-            columns: this._columns,
-            where: this._where == null ? null : this._where.map((w) => "${w['logical_operator']} ${w['where_string']}").join(' '),
-            whereArgs: this._whereArgs,
-            groupBy: this._groupBy,
-            having: this._having,
-            orderBy: this._orderBy,
-            limit: this._limit,
-            offset: this._offset,
-          );
-    } else {
-      // joins
-      String joinQueries = this._join.map((j) {
-        return """
-          ${j['type']} ${j['table']} ${j['alias'] != null ? j['alias'] : ''} 
-          ON ${j['alias'] != null ? j['alias'] : j['table']}.${j['join_column']} ${j['operator']} ${this._table}.${j['table_column']}
-        """;
-      }).join(' ');
-
-      // where
-      if (this._where == null) this._where = [];
-      String whereQueries = this._where.map((w) => "${w['logical_operator']} ${w['where_string']}").join(' ');
-
-      // build query
-      String query = """
-      SELECT ${this._distinct == null ? 'DISTINCT' : ''} ${this._columns == null ? '*' : this._columns.join(',')} FROM ${this._table}
-      $joinQueries
-      $whereQueries
-      """;
-
-      return this._db.rawQuery(query);
+    try {
+      return await this._db.rawQuery(this._query, this._queryArgs);
+    } catch (e) {
+      print(e);
     }
+    return [];
+  }
+
+  // ##################
+  // QUERY
+  // ##################
+
+  // COMPILE QUERY
+  void _compileQuery() {
+    String query = "SELECT #distinct #columns FROM #table #join #where #orderBy #groupBy #having #limit #offset ;";
+
+    // table
+    String table = this._table;
+    String alias;
+    if (this._aliases.containsKey(this._table)) {
+      alias = this._aliases[this._table];
+    }
+
+    if (alias == null) {
+      query = query.replaceFirst('#table', table);
+    } else {
+      query = query.replaceFirst('#table', "$table as $alias");
+    }
+
+    // distinct
+    if (this._distinct != null) {
+      query = query.replaceFirst('#distinct', 'DISTINCT');
+    } else {
+      query = query.replaceFirst('#distinct ', '');
+    }
+
+    // columns
+    if (this._columns != null) {
+      final q = this._columns.join(', ');
+      query = query.replaceFirst('#columns', q);
+    } else {
+      if (alias == null) {
+        query = query.replaceFirst('#columns', "$table.*");
+      } else {
+        query = query.replaceFirst('#columns', "$alias.*");
+      }
+    }
+
+    // joins
+    if (this._join != null) {
+      final q = this._join.map((j) {
+        return "${j['type']} ${j['table']} ${j['alias'] != null ? j['alias'] : ''} ON ${j['alias'] != null ? j['alias'] : j['table']}.${j['join_column']} ${j['operator']} ${this._table}.${j['table_column']}";
+      }).join(' ');
+      query = query.replaceFirst('#join', q);
+    } else {
+      query = query.replaceFirst('#join ', '');
+    }
+
+    // where
+    if (this._where != null) {
+      final q = this._where.map((w) {
+        final value = w['value'];
+        this._queryArgs.add(value);
+
+        final column = w['column'];
+        final operator = w['operator'];
+        final whereOperator = w['where_operator'];
+        return "$whereOperator$column $operator ?";
+      }).join(' ');
+      query = query.replaceFirst('#where', "WHERE $q");
+    } else {
+      query = query.replaceFirst('#where ', '');
+    }
+
+    // order by
+    if (this._orderBy != null) {
+      final q = this._orderBy.join(', ');
+      query = query.replaceFirst('#orderBy', "ORDER BY $q");
+    } else {
+      query = query.replaceFirst('#orderBy ', '');
+    }
+
+    // group by
+    if (this._groupBy != null) {
+      final q = this._groupBy.join(', ');
+      query = query.replaceFirst('#groupBy', "GROUP BY $q");
+    } else {
+      query = query.replaceFirst('#groupBy ', '');
+    }
+
+    // having
+    if (this._having != null) {
+      final q = this._having.join(', ');
+      query = query.replaceFirst('#having', "HAVING $q");
+    } else {
+      query = query.replaceFirst('#having ', '');
+    }
+
+    // limit
+    if (this._limit != null) {
+      query = query.replaceFirst('#limit', "LIMIT ${this._limit.toString()}");
+    } else {
+      query = query.replaceFirst('#limit ', '');
+    }
+
+    // offset
+    if (this._offset != null) {
+      query = query.replaceFirst('#offset', "OFFSET ${this._offset.toString()}");
+    } else {
+      query = query.replaceFirst('#offset ', '');
+    }
+
+    this._query = query;
+  }
+
+  // GET SELECT QUERY
+  String getSelectQuery({bool withValues = false}) {
+    // compile query
+    this._compileQuery();
+
+    // get args
+    final args = List<dynamic>.from(this._queryArgs);
+
+    // if with values assign args to ?
+    if (withValues)
+      this._query.replaceAllMapped('?', (match) {
+        final value = args.first;
+        args.removeAt(0);
+        return "'$value'";
+      });
+
+    // return query
+    return this._query;
   }
 
   // ##################
