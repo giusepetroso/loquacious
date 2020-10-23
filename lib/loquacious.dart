@@ -179,21 +179,60 @@ class LQB {
     return t;
   }
 
-  String _checkTableAndAliasInColumn(String column, String tableName) {
+  String _checkTableAndAliasInColumn(String column, {String tableName}) {
     column.trim();
     if (column.contains('.')) {
       final splitted = column.split('.');
       if (splitted.length > 2) return null;
-      if (this._aliases.containsKey(tableName) && splitted[0] == tableName) column = "${this._aliases[tableName]}.${splitted[1]}";
-    } else {
-      if (this._aliases.containsKey(tableName)) {
-        column = "${this._aliases[tableName]}.$column";
+
+      final tableNotation = splitted[0];
+      final columnNotation = splitted[1];
+      if (tableName == null) {
+        if (this._aliases.containsKey(tableNotation)) {
+          column = "${this._aliases[tableNotation]}.$columnNotation";
+        } else {
+          column = "$tableNotation.$columnNotation";
+        }
       } else {
-        column = "$tableName.$column";
+        if (this._aliases.containsKey(tableName)) {
+          column = "${this._aliases[tableName]}.$columnNotation";
+        } else {
+          column = "$tableName.$columnNotation";
+        }
+      }
+    } else {
+      if (tableName == null) {
+        if (this._aliases.containsKey(this._table)) {
+          column = "${this._aliases[this._table]}.$column";
+        } else {
+          column = "${this._table}.$column";
+        }
+      } else {
+        if (this._aliases.containsKey(tableName)) {
+          column = "${this._aliases[tableName]}.$column";
+        } else {
+          column = "$tableName.$column";
+        }
       }
     }
     return column;
   }
+
+  // String _findTableInColumnDeclaration(String column) {
+  //   column.trim();
+  //   if (column.contains('.')) {
+  //     final splitted = column.split('.');
+  //     if (splitted.length > 2) return null;
+  //     if (this._aliases.containsKey(tableName) && splitted[0] == tableName) column = "${this._aliases[tableName]}.${splitted[1]}";
+  //   } else {
+  //     if (this._aliases.containsKey(tableName)) {
+  //       column = "${this._aliases[tableName]}.$column";
+  //     } else {
+  //       column = "$tableName.$column";
+  //     }
+  //   }
+  //   return column;
+  // }
 
   // ##################
   // SCHEMA METHODS
@@ -221,7 +260,7 @@ class LQB {
   LQB select(List<String> columns) {
     this._columns = columns
         .map((e) {
-          return this._checkTableAndAliasInColumn(e, this._table);
+          return this._checkTableAndAliasInColumn(e);
         })
         .where((e) => e != null && e.split(' ').length == 1)
         .toList();
@@ -237,7 +276,7 @@ class LQB {
   }) {
     if (this._where == null) this._where = [];
     this._where.add({
-      'column': this._checkTableAndAliasInColumn(column, this._table),
+      'column': this._checkTableAndAliasInColumn(column),
       'value': value,
       'operator': LQB.opToString(operator),
       'where_operator': this._where.length == 0 ? '' : "$whereOperator ",
@@ -353,7 +392,21 @@ class LQB {
   // GET
   Future<List<Map<String, dynamic>>> get() async {
     try {
+      // compile the query
+      this._compileQuery();
+
+      // fetch result
       return await this._db.rawQuery(this._query, this._queryArgs);
+    } catch (e) {
+      print(e);
+    }
+    return [];
+  }
+
+  // ALL
+  Future<List<Map<String, dynamic>>> all() async {
+    try {
+      return await this._db.query(this._table);
     } catch (e) {
       print(e);
     }
@@ -366,7 +419,7 @@ class LQB {
 
   // COMPILE QUERY
   void _compileQuery() {
-    String query = "SELECT #distinct #columns FROM #table #join #where #orderBy #groupBy #having #limit #offset ;";
+    String query = "SELECT #distinct #columns FROM #table #join #where #orderBy #groupBy #having #limit #offset ";
 
     // table
     String table = this._table;
@@ -403,7 +456,10 @@ class LQB {
     // joins
     if (this._join != null) {
       final q = this._join.map((j) {
-        return "${j['type']} ${j['table']} ${j['alias'] != null ? j['alias'] : ''} ON ${j['alias'] != null ? j['alias'] : j['table']}.${j['join_column']} ${j['operator']} ${this._table}.${j['table_column']}";
+        final joinTable = this._parseTableAndAlias(j['table']);
+        final tableColumn = this._checkTableAndAliasInColumn(j['table_column'], tableName: this._table);
+        final joinColumn = this._checkTableAndAliasInColumn(j['join_column'], tableName: j['table']);
+        return "${j['type']} $joinTable ${this._aliases.containsKey(joinTable) ? this._aliases[joinTable] + ' ' : ''}ON $joinColumn ${j['operator']} $tableColumn";
       }).join(' ');
       query = query.replaceFirst('#join', q);
     } else {
@@ -464,7 +520,7 @@ class LQB {
       query = query.replaceFirst('#offset ', '');
     }
 
-    this._query = query;
+    this._query = query.trim() + ';';
   }
 
   // GET SELECT QUERY
@@ -476,12 +532,13 @@ class LQB {
     final args = List<dynamic>.from(this._queryArgs);
 
     // if with values assign args to ?
-    if (withValues)
-      this._query.replaceAllMapped('?', (match) {
+    if (withValues) {
+      this._query = this._query.replaceAllMapped(new RegExp(r'\?'), (match) {
         final value = args.first;
         args.removeAt(0);
         return "'$value'";
       });
+    }
 
     // return query
     return this._query;
