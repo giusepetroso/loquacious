@@ -68,7 +68,6 @@ class LQB {
   bool _distinct;
   List<Map<String, String>> _join;
   List<String> _columns;
-  List<Map<String, dynamic>> _values;
   List<Map<String, dynamic>> _where;
   List<String> _groupBy;
   Map<String, dynamic> _having;
@@ -91,7 +90,10 @@ class LQB {
     INTERNAL CONSTRUCTOR
    */
   LQB._internal() {
-    this._db = LqDBM.getDB();
+    this._db = LqDBM.instance().getDB();
+    if(this._db == null) {
+      throw Exception('Cannot instantiate Loquacious Query Builder before Database initialization');
+    }
   }
 
   // ##################
