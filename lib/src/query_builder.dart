@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+import 'package:loquacious/loquacious.dart';
+
 import 'database_manager.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -77,23 +80,34 @@ class LQB {
 
   LQB _union;
 
-  /* 
-    TABLE CONSTRUCTOR (entrypoint for all queries)
-  */
-  factory LQB.table(String tableName) {
-    final lqb = LQB._internal();
-    lqb._table = lqb._parseTableAndAlias(tableName);
-    return lqb;
-  }
+  // /*
+  //   TABLE CONSTRUCTOR (entrypoint for all queries)
+  // */
+  // factory LQB.table(String tableName) {
+  //   final lqb = LQB._internal();
+  //   lqb._table = lqb._parseTableAndAlias(tableName);
+  //   return lqb;
+  // }
+
+  // /*
+  //   INTERNAL CONSTRUCTOR
+  //  */
+  // LQB._internal() {
+  //   this._db = LqDBM.instance().getDB();
+  //   if (this._db == null) {
+  //     throw Exception('Cannot instantiate Loquacious Query Builder before Database initialization');
+  //   }
+  // }
 
   /* 
-    INTERNAL CONSTRUCTOR
+    TABLE CONSTRUCTOR (entrypoint for all queries)
    */
-  LQB._internal() {
+  LQB.table(String tableName) {
     this._db = LqDBM.instance().getDB();
-    if(this._db == null) {
+    if (this._db == null) {
       throw Exception('Cannot instantiate Loquacious Query Builder before Database initialization');
     }
+    this._table = this._parseTableAndAlias(tableName);
   }
 
   // ##################
@@ -390,7 +404,8 @@ class LQB {
   // GET
   // ##################
 
-  Future<List<Map<String, dynamic>>> get() async {
+  @protected
+  Future<List<dynamic>> getDynamic() async {
     try {
       // compile the query
       this._compileSelect();
@@ -401,6 +416,14 @@ class LQB {
       print(e);
     }
     return [];
+  }
+
+  Future<List<dynamic>> get() async {
+    return List<Map<String, dynamic>>.from(await this.getDynamic());
+  }
+
+  Future<dynamic> first() async {
+    return List<Map<String, dynamic>>.from(await this.getDynamic()).first;
   }
 
   // ##################

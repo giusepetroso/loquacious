@@ -1,10 +1,14 @@
 import 'package:intl/intl.dart';
 import 'package:loquacious/src/query_builder.dart';
 
-abstract class LqModel {
+// ##################
+// MODEL SUPER CLASS
+// ##################
+class LqModel {
   static const String _primaryKey = 'id';
   String _table;
   Map<String, dynamic> _arguments;
+  Map<String, dynamic> get arguments => _arguments;
 
   DateTime get createdAt => DateTime.parse(_arguments['created_at']);
   set createdAt(DateTime value) {
@@ -47,7 +51,7 @@ abstract class LqModel {
 
 class Customer extends LqModel {
   static const String _primaryKey = 'id';
-  
+
   String _table = 'customers';
   String get table => _table;
 
@@ -57,7 +61,6 @@ class Customer extends LqModel {
     'created_at': null,
     'updated_at': null,
   };
-  Map<String, dynamic> get arguments => _arguments;
 
   int get id => _arguments['id'];
   set id(int value) {
@@ -86,13 +89,14 @@ class Customer extends LqModel {
   }
 
   // MAP METHOD
-  static Customer mapToModel(Map<String, dynamic> e) {
+  static Customer mapToModel(dynamic e) {
+    final el = Map<String, dynamic>.from(e);
     final m = Customer(
-      id: e['id'],
-      name: e['name'],
+      id: el['id'],
+      name: el['name'],
     );
-    m._arguments['created_at'] = e['created_at'];
-    m._arguments['updated_at'] = e['updated_at'];
+    m._arguments['created_at'] = el['created_at'];
+    m._arguments['updated_at'] = el['updated_at'];
     return m;
   }
 
@@ -107,9 +111,66 @@ class Customer extends LqModel {
     return res.map(Customer.mapToModel).toList().first;
   }
 
+  static _LQBM<Customer> where(
+    String column,
+    dynamic value, {
+    String comparisonOperator,
+  }) {
+    return _LQBM<Customer>.table('customers').where(
+      column,
+      value,
+      comparisonOperator: comparisonOperator,
+    );
+  }
+
+  static _LQBM<Customer> orderBy(String column) {
+    return _LQBM<Customer>.table('customers').orderBy(column);
+  }
+
+  static _LQBM<Customer> orderByDesc(String column) {
+    return _LQBM<Customer>.table('customers').orderByDesc(column);
+  }
+
+  static _LQBM<Customer> groupBy(List<String> columns) {
+    return _LQBM<Customer>.table('customers').groupBy(columns);
+  }
+
+  static _LQBM<Customer> limit(int count) {
+    return _LQBM<Customer>.table('customers').limit(count);
+  }
+
+  static _LQBM<Customer> take(int count) {
+    return _LQBM<Customer>.table('customers').take(count);
+  }
+
+  static _LQBM<Customer> offset(int count) {
+    return _LQBM<Customer>.table('customers').offset(count);
+  }
+
+  static _LQBM<Customer> skip(int count) {
+    return _LQBM<Customer>.table('customers').skip(count);
+  }
+
   // INSTANCE METHODS
   Future<Customer> save() async {
     await super._save(primaryKey: Customer._primaryKey);
     return this;
+  }
+}
+
+// ##################
+// QUERY BUILDER OF MODEL
+// ##################
+class _LQBM<T extends Customer> extends LQB {
+  _LQBM.table(String tableName) : super.table(tableName);
+
+  @override
+  Future<List<Customer>> get() async {
+    return List<Customer>.from((await this.getDynamic()).map(Customer.mapToModel));
+  }
+
+  @override
+  Future<Customer> first() async {
+    return List<Customer>.from((await this.getDynamic()).map(Customer.mapToModel)).first;
   }
 }
