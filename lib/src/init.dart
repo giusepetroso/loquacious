@@ -6,11 +6,17 @@ class Loquacious {
     String databaseName,
     int databaseVersion, {
     bool useMigrations = false,
+    bool resetDB = false,
   }) async {
     // get instance of db manager
     final lqdbm = LqDBM.instance();
 
     // init DB
-    await lqdbm.init(databaseName, databaseVersion, useMigrations);
+    await lqdbm.init(
+      databaseName,
+      databaseVersion,
+      useMigrations: useMigrations,
+      resetDB: resetDB,
+    );
   }
 }
