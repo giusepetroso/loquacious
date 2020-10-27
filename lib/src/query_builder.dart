@@ -80,25 +80,6 @@ class LQB {
 
   LQB _union;
 
-  // /*
-  //   TABLE CONSTRUCTOR (entrypoint for all queries)
-  // */
-  // factory LQB.table(String tableName) {
-  //   final lqb = LQB._internal();
-  //   lqb._table = lqb._parseTableAndAlias(tableName);
-  //   return lqb;
-  // }
-
-  // /*
-  //   INTERNAL CONSTRUCTOR
-  //  */
-  // LQB._internal() {
-  //   this._db = LqDBM.instance().getDB();
-  //   if (this._db == null) {
-  //     throw Exception('Cannot instantiate Loquacious Query Builder before Database initialization');
-  //   }
-  // }
-
   /* 
     TABLE CONSTRUCTOR (entrypoint for all queries)
    */
@@ -423,7 +404,10 @@ class LQB {
   }
 
   Future<dynamic> first() async {
-    return List<Map<String, dynamic>>.from(await this.getDynamic()).first;
+    try {
+      return List<Map<String, dynamic>>.from(await this.getDynamic()).first;
+    } catch (e) {}
+    return null;
   }
 
   // ##################
