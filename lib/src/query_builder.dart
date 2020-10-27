@@ -445,7 +445,7 @@ class LQB {
       this._compileUpdate(values);
 
       // fetch result
-      return await this._db.rawQuery(this._query, this._getQueryArgs());
+      return await this._db.rawUpdate(this._query, this._getQueryArgs());
     } catch (e) {
       print(e);
     }
@@ -461,7 +461,21 @@ class LQB {
       this._compileDelete();
 
       // fetch result
-      return await this._db.rawQuery(this._query, this._getQueryArgs());
+      return await this._db.rawDelete(this._query, this._getQueryArgs());
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> truncate() async {
+    try {
+      final query = """
+        DELETE FROM ${this._table};
+        DELETE FROM sqlite_sequence WHERE name = ${this._table};
+      """;
+
+      // fetch result
+      return await this._db.rawDelete(query);
     } catch (e) {
       print(e);
     }

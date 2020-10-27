@@ -69,22 +69,24 @@ class LqDBM {
     _db = await openDatabase("${this._dbName}.db", onConfigure: (Database db) async {
       await db.execute('PRAGMA foreign_keys = ON');
     }, onOpen: (Database db) async {
-      SharedPreferences sp = await SharedPreferences.getInstance();
-      final prefsVersionKey = 'loquacious_db_version:${this._dbName}';
       List<String> migs;
       int dbVersion = 0;
-      if (sp.containsKey(prefsVersionKey)) {
-        dbVersion = sp.getInt(prefsVersionKey);
-      }
+      SharedPreferences sp = await SharedPreferences.getInstance();
+      final prefsVersionKey = 'loquacious_db_version:${this._dbName}';
+      if (useMigrations) {
+        if (sp.containsKey(prefsVersionKey)) {
+          dbVersion = sp.getInt(prefsVersionKey);
+        }
 
-      // upgrade migrations
-      if (this._dbVersion > dbVersion) {
-        migs = await this.loadMigrations(this._dbVersion, 'up');
-      }
+        // upgrade migrations
+        if (this._dbVersion > dbVersion) {
+          migs = await this.loadMigrations(this._dbVersion, 'up');
+        }
 
-      // downgrade migrations
-      if (this._dbVersion < dbVersion) {
-        migs = await this.loadMigrations(dbVersion, 'down');
+        // downgrade migrations
+        if (this._dbVersion < dbVersion) {
+          migs = await this.loadMigrations(dbVersion, 'down');
+        }
       }
 
       // run migrations
