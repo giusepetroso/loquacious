@@ -1,3 +1,3 @@
-## [0.0.1] - TODO: Add release date.
+## [0.0.1] - 12/11/2020
 
-* TODO: Describe initial release.
+* first version of db manager, query builder and ORM

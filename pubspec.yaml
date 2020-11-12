@@ -1,7 +1,6 @@
 name: loquacious
 description: An ORM inspired by Laravel Eloquent
 version: 0.0.1
-author: Giuse Petroso
 homepage: https://github.com/giusepetroso/loquacious.git
 
 environment:
@@ -11,11 +10,6 @@ dependencies:
   flutter:
     sdk: flutter  
   sqflite: ^1.3.1+1
-  sqflite_migration_service:
   shared_preferences: ^0.5.12 
-
-dev_dependencies:
-  # flutter_test:
-  #   sdk: flutter
 
 flutter: null
