@@ -1,7 +1,7 @@
 name: loquacious
 description: An ORM inspired by Laravel Eloquent
-version: 0.0.1
-homepage: https://github.com/giusepetroso/loquacious.git
+version: 0.0.1+1
+homepage: https://github.com/giusepetroso/loquacious
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
