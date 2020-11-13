@@ -149,7 +149,7 @@ Then before the `runApp(...)` method insert the Loquacious initialization method
 
 Ensure you call `WidgetsFlutterBinding.ensureInitialized();` in the first line of the `main()` method.
 ```
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   Loquacious.init('db_name', 1, useMigrations: true).then((_) {
     runApp(MyApp());
