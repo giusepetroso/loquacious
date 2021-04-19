@@ -180,7 +180,14 @@ class LQB {
   // ##################
   // BUILD RAW METHODS
   // ##################
-  // selectRaw
+
+  // SELECT RAW
+  LQB selectRaw(String query) {
+    if(this._columns == null) this._columns = [];
+    this._columns.add(query);
+    return this;
+  }
+
   // whereRaw/orWhereRaw
   // havingRaw/orHavingRaw
   // orderByRaw
@@ -192,12 +199,13 @@ class LQB {
 
   // SELECT
   LQB select(List<String> columns) {
-    this._columns = columns
+    if(this._columns == null) this._columns = [];
+    this._columns.addAll(columns
         .map((e) {
           return this._checkTableAndAliasInColumn(e);
         })
         .where((e) => e != null && e.split(' ').length == 1)
-        .toList();
+        .toList());
     return this;
   }
 
