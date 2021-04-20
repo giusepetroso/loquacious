@@ -37,7 +37,7 @@ class LqDBM {
     bool resetDB = false,
   }) async {
     this._dbName = databaseName;
-    this._dbVersion = databaseVersion ?? 0;
+    this._dbVersion = databaseVersion;
     if (resetDB) await this._deleteDB();
     await this._loadDB(useMigrations);
   }
