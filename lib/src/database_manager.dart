@@ -33,11 +33,11 @@ class LqDBM {
   Future<void> init(
     String databaseName,
     int databaseVersion, {
-    bool useMigrations,
-    bool resetDB,
+    bool useMigrations = false,
+    bool resetDB = false,
   }) async {
     this._dbName = databaseName;
-    this._dbVersion = databaseVersion;
+    this._dbVersion = databaseVersion ?? 0;
     if (resetDB) await this._deleteDB();
     await this._loadDB(useMigrations);
   }
@@ -45,7 +45,7 @@ class LqDBM {
   // MIGRATIONS METHODS
   Future<List<String>> loadMigrations(int version, String direction) async {
     final migrationsFolder = "assets/loquacious/migrations";
-    List<String> migs;
+    List<String> migs = [];
     try {
       final file = await rootBundle.loadString("$migrationsFolder/$version.json");
       final fileDecoded = json.decode(file);
@@ -69,13 +69,13 @@ class LqDBM {
     _db = await openDatabase("${this._dbName}.db", onConfigure: (Database db) async {
       await db.execute('PRAGMA foreign_keys = ON');
     }, onOpen: (Database db) async {
-      List<String> migs;
+      List<String> migs = [];
       int dbVersion = 0;
       SharedPreferences sp = await SharedPreferences.getInstance();
       final prefsVersionKey = 'loquacious_db_version:${this._dbName}';
       if (useMigrations) {
         if (sp.containsKey(prefsVersionKey)) {
-          dbVersion = sp.getInt(prefsVersionKey);
+          dbVersion = sp.getInt(prefsVersionKey) ?? 0;
         }
 
         // upgrade migrations
@@ -91,7 +91,7 @@ class LqDBM {
 
       // run migrations
       Exception error;
-      if (migs != null) {
+      if (migs.length > 0) {
         try {
           await db.transaction((txn) async {
             List<Future> execs = [];
