@@ -115,7 +115,7 @@ class LQB {
   // PARSE TABLE AND ALIAS
   // this method parses the string of a table and eventually stores the alias then returns the table name
   String _parseTableAndAlias(String tableName) {
-    final splitted = tableName.toLowerCase().split('as');
+    final splitted = tableName.toLowerCase().split(' as ');
     final t = splitted[0].trim();
     String a;
     if (splitted.length > 1) {
