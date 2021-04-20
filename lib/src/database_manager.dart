@@ -15,19 +15,19 @@ enum DBType {
 
 class LqDBM {
   // SINGLETON CONSTRUCT
-  static LqDBM _self;
+  static LqDBM? _self;
   factory LqDBM.instance() {
     if (LqDBM._self == null) {
       LqDBM._self = LqDBM._internal();
     }
-    return LqDBM._self;
+    return LqDBM._self!;
   }
   LqDBM._internal();
 
   // DB PROPS
-  Database _db;
-  String _dbName;
-  int _dbVersion;
+  Database? _db;
+  String? _dbName;
+  int? _dbVersion;
 
   // INIT METHOD
   Future<void> init(
@@ -43,7 +43,7 @@ class LqDBM {
   }
 
   // MIGRATIONS METHODS
-  Future<List<String>> loadMigrations(int version, String direction) async {
+  Future<List<String>> loadMigrations(int? version, String direction) async {
     final migrationsFolder = "assets/loquacious/migrations";
     List<String> migs = [];
     try {
@@ -79,18 +79,18 @@ class LqDBM {
         }
 
         // upgrade migrations
-        if (this._dbVersion > dbVersion) {
+        if (this._dbVersion! > dbVersion) {
           migs = await this.loadMigrations(this._dbVersion, 'up');
         }
 
         // downgrade migrations
-        if (this._dbVersion < dbVersion) {
+        if (this._dbVersion! < dbVersion) {
           migs = await this.loadMigrations(dbVersion, 'down');
         }
       }
 
       // run migrations
-      Exception error;
+      Exception? error;
       if (migs.length > 0) {
         try {
           await db.transaction((txn) async {
@@ -101,23 +101,23 @@ class LqDBM {
             await Future.wait(execs);
           });
         } catch (e) {
-          error = e;
+          error = e as Exception;
         }
       }
 
       // save new version
       if (error == null) {
         if (this._dbVersion != dbVersion) {
-          await sp.setInt(prefsVersionKey, this._dbVersion);
+          await sp.setInt(prefsVersionKey, this._dbVersion!);
         }
       } else {
-        throw MigrationException(this._dbVersion, this._dbVersion > dbVersion ? 'up' : 'down', error.toString());
+        throw MigrationException(this._dbVersion!, this._dbVersion! > dbVersion ? 'up' : 'down', error.toString());
       }
     });
   }
 
   // GETS THE DATABASE INSTANCE
-  Database getDB() {
+  Database? getDB() {
     return _db;
   }
 }

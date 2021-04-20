@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:loquacious/loquacious.dart';
 
@@ -22,7 +24,7 @@ const String LESS_EQUALS = LE;
 // QUERY BUILDER UTILITIES
 // ##################
 class LqbUtils {
-  static String _checkComparisonOperator(String comparisonOperator) {
+  static String? _checkComparisonOperator(String? comparisonOperator) {
     if (comparisonOperator != '=' && comparisonOperator != '!=' && comparisonOperator != '<>' && comparisonOperator != '<' && comparisonOperator != '<=' && comparisonOperator != '>' && comparisonOperator != '>=') {
       return '=';
     }
@@ -52,10 +54,10 @@ class LQB {
   */
 
   // database instance
-  Database _db;
+  Database? _db;
 
   // query
-  String _query;
+  String? _query;
   Map<String, List<dynamic>> _queryArgs = {
     'values': [],
     'where': [],
@@ -67,18 +69,18 @@ class LQB {
   Map<String, String> _cAliases = {}; // columns aliases
 
   // query props
-  String _table;
-  bool _distinct;
-  List<Map<String, String>> _join;
-  List<String> _columns;
-  List<Map<String, dynamic>> _where;
-  List<String> _groupBy;
-  Map<String, dynamic> _having;
-  List<Map<String, String>> _orderBy;
-  int _limit;
-  int _offset;
+  String? _table;
+  bool? _distinct;
+  List<Map<String, String?>>? _join;
+  List<String?>? _columns;
+  List<Map<String, dynamic>>? _where;
+  List<String>? _groupBy;
+  Map<String, dynamic>? _having;
+  List<Map<String, String>>? _orderBy;
+  int? _limit;
+  int? _offset;
 
-  LQB _union;
+  LQB? _union;
 
   /* 
     TABLE CONSTRUCTOR (entrypoint for all queries)
@@ -96,15 +98,15 @@ class LQB {
   // ##################
   List<dynamic> _getQueryArgs() {
     return [
-      ...this._queryArgs['values'],
-      ...this._queryArgs['where'],
-      ...this._queryArgs['having'],
+      ...this._queryArgs['values']!,
+      ...this._queryArgs['where']!,
+      ...this._queryArgs['having']!,
     ];
   }
 
-  void _mergeQueryArgs(Map<String, List<dynamic>> otherArgs) {
+  void _mergeQueryArgs(Map<String, List<dynamic>>? otherArgs) {
     for (var type in this._queryArgs.keys) {
-      this._queryArgs[type].addAll(otherArgs[type]);
+      this._queryArgs[type]!.addAll(otherArgs![type]!);
     }
   }
 
@@ -125,7 +127,7 @@ class LQB {
     return t;
   }
 
-  String _checkTableAndAliasInColumn(String column, {String tableName}) {
+  String? _checkTableAndAliasInColumn(String column, {String? tableName}) {
     column.trim();
     if (column.contains('.')) {
       final splitted = column.split('.');
@@ -149,7 +151,7 @@ class LQB {
     } else {
       if (tableName == null) {
         if (this._tAliases.containsKey(this._table)) {
-          column = "${this._tAliases[this._table]}.$column";
+          column = "${this._tAliases[this._table!]}.$column";
         } else {
           column = "${this._table}.$column";
         }
@@ -167,10 +169,10 @@ class LQB {
   // ##################
   // SCHEMA METHODS
   // ##################
-  Future<List<String>> tableColumns(String tableName) async {
+  Future<List<String?>> tableColumns(String tableName) async {
     try {
-      final schema = await this._db.rawQuery("PRAGMA table_info('$tableName');");
-      return schema.map((e) => e['name']);
+      final schema = await this._db!.rawQuery("PRAGMA table_info('$tableName');");
+      return schema.map((e) => e['name']) as FutureOr<List<String?>>;
     } catch (e) {
       print(e);
     }
@@ -184,7 +186,7 @@ class LQB {
   // SELECT RAW
   LQB selectRaw(String query) {
     if(this._columns == null) this._columns = [];
-    this._columns.add(query);
+    this._columns!.add(query);
     return this;
   }
 
@@ -200,7 +202,7 @@ class LQB {
   // SELECT
   LQB select(List<String> columns) {
     if(this._columns == null) this._columns = [];
-    this._columns.addAll(columns
+    this._columns!.addAll(columns
         .map((e) {
           return this._checkTableAndAliasInColumn(e);
         })
@@ -214,15 +216,15 @@ class LQB {
     String column,
     dynamic value,
     String whereOperator, {
-    String comparisonOperator,
+    String? comparisonOperator,
   }) {
     if (this._where == null) this._where = [];
-    this._queryArgs['where'].add(value);
-    this._where.add({
+    this._queryArgs['where']!.add(value);
+    this._where!.add({
       'column': this._checkTableAndAliasInColumn(column),
       'value': value,
       'comparisonOperator': LqbUtils._checkComparisonOperator(comparisonOperator),
-      'whereOperator': this._where.length == 0 ? '' : "$whereOperator ",
+      'whereOperator': this._where!.length == 0 ? '' : "$whereOperator ",
     });
     return this;
   }
@@ -231,7 +233,7 @@ class LQB {
   LQB where(
     String column,
     dynamic value, {
-    String comparisonOperator,
+    String? comparisonOperator,
   }) {
     return this._commonWhere(column, value, 'AND', comparisonOperator: comparisonOperator);
   }
@@ -240,7 +242,7 @@ class LQB {
   LQB orWhere(
     String column,
     dynamic value, {
-    String comparisonOperator,
+    String? comparisonOperator,
   }) {
     return this._commonWhere(column, value, 'OR', comparisonOperator: comparisonOperator);
   }
@@ -254,14 +256,14 @@ class LQB {
   // ADD SELECT
   LQB addSelect(String column) {
     if (this._columns == null) this._columns = [];
-    this._columns.add(column);
+    this._columns!.add(column);
     return this;
   }
 
   // COMMON JOIN
   LQB _commonJoin(String joinType, String table, String joinColumn, String comparisonOperator, String tableColumn) {
     if (this._join == null) this._join = [];
-    this._join.add({
+    this._join!.add({
       'type': joinType,
       'table': this._parseTableAndAlias(table),
       'join_column': joinColumn,
@@ -298,7 +300,7 @@ class LQB {
   // ORDER BY
   LQB _commonOrderBy(String column, String direction) {
     if (this._orderBy == null) this._orderBy = [];
-    this._orderBy.add({
+    this._orderBy!.add({
       'column': column,
       'direction': direction,
     });
@@ -317,7 +319,7 @@ class LQB {
   // GROUP BY
   LQB groupBy(List<String> columns) {
     if (this._groupBy == null) this._groupBy = [];
-    this._groupBy.addAll(columns);
+    this._groupBy!.addAll(columns);
     return this;
   }
 
@@ -327,7 +329,7 @@ class LQB {
     String comparisonOperator,
     dynamic value,
   ) {
-    this._queryArgs['having'].add(value);
+    this._queryArgs['having']!.add(value);
     this._having = {
       'column': this._checkTableAndAliasInColumn(column),
       'value': value,
@@ -370,7 +372,7 @@ class LQB {
 
     // if with values assign args to ?
     if (withValues) {
-      this._query = this._query.replaceAllMapped(new RegExp(r'\?'), (match) {
+      this._query = this._query!.replaceAllMapped(new RegExp(r'\?'), (match) {
         final value = args.first;
         args.removeAt(0);
         return "'$value'";
@@ -385,7 +387,7 @@ class LQB {
   }
 
   // GET SELECT QUERY
-  String getSelectQuery({bool withValues = false}) {
+  String? getSelectQuery({bool withValues = false}) {
     return this.getSelectQueryAndArgs(withValues: withValues)['query'];
   }
 
@@ -400,7 +402,7 @@ class LQB {
       this._compileSelect();
 
       // fetch result
-      return await this._db.rawQuery(this._query, this._getQueryArgs());
+      return await this._db!.rawQuery(this._query!, this._getQueryArgs());
     } catch (e) {
       print(e);
     }
@@ -423,9 +425,9 @@ class LQB {
   // ##################
 
   // INSERT
-  Future<int> insertGetId(Map<String, dynamic> values) async {
+  Future<int?> insertGetId(Map<String, dynamic> values) async {
     try {
-      return await this._db.insert(this._table, values);
+      return await this._db!.insert(this._table!, values);
     } catch (e) {
       print(e);
     }
@@ -442,10 +444,10 @@ class LQB {
 
   // INSERT MANY
   Future<void> insertMany(List<Map<String, dynamic>> rows) async {
-    this._db.transaction((txn) async {
+    this._db!.transaction((txn) async {
       List<Future> futs = [];
       for (var i = 0; i < rows.length; i++) {
-        futs.add(txn.insert(this._table, rows[i]));
+        futs.add(txn.insert(this._table!, rows[i]));
       }
       await Future.wait(futs);
     });
@@ -454,35 +456,37 @@ class LQB {
   // ##################
   // UPDATES
   // ##################
-  Future<void> update(Map<String, dynamic> values) async {
+  Future<int> update(Map<String, dynamic> values) async {
     try {
       // compile the query
       this._compileUpdate(values);
 
       // fetch result
-      return await this._db.rawUpdate(this._query, this._getQueryArgs());
+      return await this._db!.rawUpdate(this._query!, this._getQueryArgs());
     } catch (e) {
       print(e);
     }
+    return 0;
   }
 
   // ##################
   // DELETES
   // ##################
 
-  Future<void> delete() async {
+  Future<int> delete() async {
     try {
       // compile the query
       this._compileDelete();
 
       // fetch result
-      return await this._db.rawDelete(this._query, this._getQueryArgs());
+      return await this._db!.rawDelete(this._query!, this._getQueryArgs());
     } catch (e) {
       print(e);
     }
+    return 0;
   }
 
-  Future<void> truncate() async {
+  Future<int> truncate() async {
     try {
       final query = """
         DELETE FROM ${this._table};
@@ -490,23 +494,24 @@ class LQB {
       """;
 
       // fetch result
-      return await this._db.rawDelete(query);
+      return await this._db!.rawDelete(query);
     } catch (e) {
       print(e);
     }
+    return 0;
   }
 
   // ##################
   // COMPILATIONS
   // ##################
   String _compileTable(String query) {
-    String alias;
+    String? alias;
     if (this._tAliases.containsKey(this._table)) {
-      alias = this._tAliases[this._table];
+      alias = this._tAliases[this._table!];
     }
 
     if (alias == null) {
-      query = query.replaceFirst('#table', this._table);
+      query = query.replaceFirst('#table', this._table!);
     } else {
       query = query.replaceFirst('#table', "${this._table} as $alias");
     }
@@ -524,11 +529,11 @@ class LQB {
 
   String _compileJoin(String query) {
     if (this._join != null) {
-      final q = this._join.map((j) {
-        final joinTable = this._parseTableAndAlias(j['table']);
-        final tableColumn = this._checkTableAndAliasInColumn(j['table_column'], tableName: this._table);
-        final joinColumn = this._checkTableAndAliasInColumn(j['join_column'], tableName: j['table']);
-        return "${j['type']} $joinTable ${this._tAliases.containsKey(joinTable) ? this._tAliases[joinTable] + ' ' : ''}ON $joinColumn ${j['comparisonOperator']} $tableColumn";
+      final q = this._join!.map((j) {
+        final joinTable = this._parseTableAndAlias(j['table']!);
+        final tableColumn = this._checkTableAndAliasInColumn(j['table_column']!, tableName: this._table);
+        final joinColumn = this._checkTableAndAliasInColumn(j['join_column']!, tableName: j['table']);
+        return "${j['type']} $joinTable ${this._tAliases.containsKey(joinTable) ? this._tAliases[joinTable]! + ' ' : ''}ON $joinColumn ${j['comparisonOperator']} $tableColumn";
       }).join(' ');
       query = query.replaceFirst('#join', q);
     } else {
@@ -539,11 +544,11 @@ class LQB {
 
   String _compileColumns(String query) {
     if (this._columns != null) {
-      final q = this._columns.join(', ');
+      final q = this._columns!.join(', ');
       query = query.replaceFirst('#columns', q);
     } else {
       if (this._tAliases.containsKey(this._table)) {
-        query = query.replaceFirst('#columns', "${this._tAliases[this._table]}.*");
+        query = query.replaceFirst('#columns', "${this._tAliases[this._table!]}.*");
       } else {
         query = query.replaceFirst('#columns', "${this._table}.*");
       }
@@ -553,7 +558,7 @@ class LQB {
 
   String _compileWhere(String query) {
     if (this._where != null) {
-      final q = this._where.map((w) {
+      final q = this._where!.map((w) {
         final column = w['column'];
         final comparisonOperator = w['comparisonOperator'];
         final whereOperator = w['whereOperator'];
@@ -568,7 +573,7 @@ class LQB {
 
   String _compileGroupBy(String query) {
     if (this._groupBy != null) {
-      final q = this._groupBy.join(', ');
+      final q = this._groupBy!.join(', ');
       query = query.replaceFirst('#groupBy', "GROUP BY $q");
     } else {
       query = query.replaceFirst('#groupBy ', '');
@@ -578,8 +583,8 @@ class LQB {
 
   String _compileHaving(String query) {
     if (this._having != null) {
-      final column = this._having['column'];
-      final comparisonOperator = this._having['comparisonOperator'];
+      final column = this._having!['column'];
+      final comparisonOperator = this._having!['comparisonOperator'];
       query = query.replaceFirst('#having', "HAVING $column $comparisonOperator ?");
     } else {
       query = query.replaceFirst('#having ', '');
@@ -589,7 +594,7 @@ class LQB {
 
   String _compileOrderBy(String query) {
     if (this._orderBy != null) {
-      final q = this._orderBy.map((o) => "${o['column']} ${o['direction']}").reduce((value, element) => "$value, $element");
+      final q = this._orderBy!.map((o) => "${o['column']} ${o['direction']}").reduce((value, element) => "$value, $element");
       query = query.replaceFirst('#orderBy', "ORDER BY $q");
     } else {
       query = query.replaceFirst('#orderBy ', '');
@@ -617,7 +622,7 @@ class LQB {
 
   String _compileUnion(String query) {
     if (this._union != null) {
-      final unionQuery = this._union.getSelectQueryAndArgs();
+      final unionQuery = this._union!.getSelectQueryAndArgs();
       query += "UNION ${unionQuery['query']}";
       this._mergeQueryArgs(unionQuery['args']);
     }
@@ -687,7 +692,7 @@ class LQB {
     List<String> vList = [];
     for (var column in values.keys) {
       vList.add("$column = ?");
-      this._queryArgs['values'].add(values[column]);
+      this._queryArgs['values']!.add(values[column]);
     }
     query = query.replaceFirst('#values', vList.join(', '));
 
