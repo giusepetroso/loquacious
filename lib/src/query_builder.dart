@@ -66,7 +66,7 @@ class LQB {
 
   // aliases
   Map<String, String> _tAliases = {}; // tables aliases
-  Map<String, String> _cAliases = {}; // columns aliases
+  // Map<String, String> _cAliases = {}; // columns aliases
 
   // query props
   String? _table;

@@ -126,7 +126,7 @@ Then you can fill it with your schema setup, for example:
 }
 ```
 
-*Further instructions of the schema definition in the [descriptor documentation](DOC_DESCRIPTOR.md)*
+*Further instructions of the schema definition in the [descriptor documentation](doc/descriptor_api.md)*
 
 ## Run craftsman scaffold
 After you filled the descriptor you have to run the `flutter pub run craftsman:scaffold` command.
@@ -169,7 +169,7 @@ Here is a simple example:
 ```
 final result = await LQB.table('users').where('username', 'foo').get();
 ```
-Here you can find the [full API documentation](DOC_LQB.md)
+Here you can find the [full API documentation](doc/lqb_api.md)
 
 ## Using Loquacious ORM
 The real power of Loquacious is the **Object Relational Mapping**.
